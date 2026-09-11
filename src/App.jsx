@@ -1,20 +1,53 @@
 // 1. Import the required 3D components
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Grid } from '@react-three/drei'
+import { XR, createXRStore, useXRControllerLocomotion, XROrigin} from '@react-three/xr'
 import Takshshilla from './components/Takshshilla'
 import MainBuilding from './components/mainBuilding'
+import { useRef } from 'react'
+
+const store = createXRStore()
+
+function PlayerMovement() {
+  const playerRef = useRef(null);
+
+  // This automatically binds the left/right VR joysticks to walk and turn!
+  useXRControllerLocomotion(playerRef, {
+    speed:10
+  })
+  return (
+    <XROrigin ref={playerRef} position={[0, 0, 0]} />
+  )
+}
 
 function App() {
   return (
     <>
+    <button 
+        onClick={() => store.enterVR()}
+        style={{
+          position: 'absolute',
+          zIndex: 10,
+          bottom: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          padding: '12px 24px',
+          fontSize: '16px',
+          cursor: 'pointer'
+        }}
+      >
+        Enter VR
+      </button>
+
       <Canvas style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', backgroundColor: '#87CEEB' }}>
-        
+        <XR store={store}>
+          <PlayerMovement/>
         {/* Lighting */}
         <ambientLight intensity={1} />
         <directionalLight position={[5, 10, 7]} intensity={1} />
         
         {/* <Takshshilla position={[0, 0, 0]} /> */}
-        <MainBuilding position={[0,-10,-150]} />
+        <MainBuilding position={[0,-2,-150]} />
         {/* Camera Controls */}
         <OrbitControls 
             enablePan={false}
@@ -38,6 +71,7 @@ function App() {
           fadeDistance={0}
           fadeStrength={2}
         />
+        </XR>
       </Canvas>
     </>
   )
