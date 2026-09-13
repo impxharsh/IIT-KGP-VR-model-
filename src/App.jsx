@@ -47,7 +47,7 @@ function App() {
         <directionalLight position={[5, 10, 7]} intensity={1} />
         
         {/* <Takshshilla position={[0, 0, 0]} /> */}
-        <MainBuilding position={[0,-2,-150]} />
+        <MainBuilding position={[0,-4,-150]} />
         {/* Camera Controls */}
         <OrbitControls 
             enablePan={false}
@@ -55,7 +55,7 @@ function App() {
             enableDamping={true}
             dampingFactor={0.05}
             minPolarAngle={Math.PI / 3}
-            maxPolarAngle={Math.PI - Math.PI / 8}
+            maxPolarAngle={(2.4)*Math.PI/3}
             minAzimuthAngle={-Math.PI}
             maxAzimuthAngle={Math.PI}
        
