@@ -246,7 +246,7 @@ function RoadSegment({ position, size, orientation = 'vertical' }) {
 }
 
 // 5. Handmade Map Building Coordinates
-const CAMPUS_BUILDINGS = [
+export const CAMPUS_BUILDINGS = [
   // LEFT ROUTE — OUTER LEFT SIDE (X = -185, facing Right towards X = -135 road)
   {
     id: 'ece',
