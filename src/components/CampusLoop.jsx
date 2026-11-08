@@ -1,8 +1,63 @@
-import { Text } from '@react-three/drei'
+import React, { Suspense, useMemo } from 'react'
+import { Text, useGLTF } from '@react-three/drei'
+import * as THREE from 'three'
 
 const GROUND_Y = -4
 const GRASS_Y = GROUND_Y - 0.05
 const ROAD_Y = GROUND_Y + 0.04
+
+function DepartmentGLB({
+  path,
+  targetSize,
+  entranceSide,
+  modelRotationOffset = 0,
+  modelScale = 1,
+  modelOffset = [0, 0, 0],
+}) {
+  const { scene } = useGLTF(path)
+
+  // Calculate total Y rotation first so bounding box fits the rotated plot orientation
+  let rotY = modelRotationOffset
+  if (entranceSide === 'left') rotY += -Math.PI / 2
+  else if (entranceSide === 'right') rotY += Math.PI / 2
+
+  const { clonedScene, scale, offset } = useMemo(() => {
+    const clone = scene.clone(true)
+    const box = new THREE.Box3().setFromObject(clone)
+    const size = new THREE.Vector3()
+    const center = new THREE.Vector3()
+    box.getSize(size)
+    box.getCenter(center)
+
+    const [targetW, targetH, targetD] = targetSize
+
+    // If rotated ~90 or ~270 degrees, swap width and depth targets so it fits the plinth
+    const isSideRotated = Math.abs(Math.sin(rotY)) > 0.707
+    const fitW = isSideRotated ? targetD : targetW
+    const fitD = isSideRotated ? targetW : targetD
+
+    const maxDimX = size.x > 0 ? fitW / size.x : 1
+    const maxDimY = size.y > 0 ? targetH / size.y : 1
+    const maxDimZ = size.z > 0 ? fitD / size.z : 1
+
+    // Multiply the auto-fitted scale by your custom modelScale
+    const finalScale = Math.min(maxDimX, maxDimY, maxDimZ) * 0.95 * modelScale
+
+    const posOffset = [
+      -center.x * finalScale,
+      0.8 - box.min.y * finalScale,
+      -center.z * finalScale,
+    ]
+
+    return { clonedScene: clone, scale: finalScale, offset: posOffset }
+  }, [scene, targetSize, modelScale, rotY])
+
+  return (
+    <group position={modelOffset} rotation={[0, rotY, 0]}>
+      <primitive object={clonedScene} position={offset} scale={scale} />
+    </group>
+  )
+}
 
 // 1. Intersection Route Signboard (Double-Sided)
 function Signboard({ position, rotation = [0, 0, 0], title, subtitle, arrow = 'right' }) {
@@ -245,7 +300,7 @@ function RoadSegment({ position, size, orientation = 'vertical' }) {
   )
 }
 
-// 5. Handmade Map Building Coordinates
+// 5. Handmade Map Building Coordinates + Mapped GLB Paths, Scale & Rotation Controls
 export const CAMPUS_BUILDINGS = [
   // LEFT ROUTE — OUTER LEFT SIDE (X = -185, facing Right towards X = -135 road)
   {
@@ -256,6 +311,9 @@ export const CAMPUS_BUILDINGS = [
     size: [40, 20, 75],
     color: '#0d9488',
     entranceSide: 'right',
+    modelPath: '/models/iit_kgp_ece_dept.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
   },
   {
     id: 'mining',
@@ -265,6 +323,9 @@ export const CAMPUS_BUILDINGS = [
     size: [40, 18, 75],
     color: '#57534e',
     entranceSide: 'right',
+    modelPath: '/models/iit_kgp_mining_dept.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
   },
 
   // LEFT ROUTE — INNER RIGHT SIDE (X = -88, facing Left towards X = -135 road)
@@ -276,6 +337,9 @@ export const CAMPUS_BUILDINGS = [
     size: [44, 22, 45],
     color: '#d97706',
     entranceSide: 'left',
+    // modelPath: '/models/ECE_Department.glb',
+    // modelScale: 1,
+    // modelRotationOffset: 0,
   },
   {
     id: 'math_ee_shared',
@@ -287,6 +351,9 @@ export const CAMPUS_BUILDINGS = [
     upperFloorColor: '#b45309',
     isTwoFloorShared: true,
     entranceSide: 'left',
+    modelPath: '/models/iit_kgp_electrical_math_complex.glb',
+    modelScale: 2,
+    modelRotationOffset: 0,
   },
   {
     id: 'metallurgy',
@@ -296,6 +363,10 @@ export const CAMPUS_BUILDINGS = [
     size: [44, 20, 68],
     color: '#b91c1c',
     entranceSide: 'left',
+    modelPath: '/models/iit_kgp_metallurgy_dept.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
 
   // MIDDLE CORE BLOCKS
@@ -307,6 +378,9 @@ export const CAMPUS_BUILDINGS = [
     size: [54, 16, 65],
     color: '#475569',
     entranceSide: 'front',
+    modelPath: '/models/Training_Workshop_Mech_Eng_IIT_KGP.glb',
+    modelScale: 2,
+    modelRotationOffset: 0,
   },
   {
     id: 'rubber',
@@ -316,6 +390,9 @@ export const CAMPUS_BUILDINGS = [
     size: [42, 17, 46],
     color: '#78716c',
     entranceSide: 'front',
+    modelPath: '/models/Rubber_Technology_Centre_IIT_KGP.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
   },
 
   // RIGHT ROUTE — INNER LEFT SIDE (X = +88, facing Right towards X = +135 road)
@@ -327,6 +404,10 @@ export const CAMPUS_BUILDINGS = [
     size: [42, 18, 34],
     color: '#991b1b',
     entranceSide: 'right',
+    modelPath: '/models/Netaji_Auditorium.glb',
+    modelScale: 2,
+    modelRotationOffset: -Math.PI/2,
+    modelOffset: [0, 0, 0],
   },
   {
     id: 'hss',
@@ -336,6 +417,10 @@ export const CAMPUS_BUILDINGS = [
     size: [42, 18, 36],
     color: '#be185d',
     entranceSide: 'right',
+    modelPath: '/models/iit_kgp_hss_geology_complex.glb',
+    modelScale: 3,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
   {
     id: 'geology',
@@ -345,6 +430,10 @@ export const CAMPUS_BUILDINGS = [
     size: [42, 18, 38],
     color: '#a16207',
     entranceSide: 'right',
+    modelPath: '/models/iit_kgp_hss_geology_complex.glb',
+    modelScale: 1,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
   {
     id: 'civil',
@@ -354,6 +443,10 @@ export const CAMPUS_BUILDINGS = [
     size: [42, 19, 46],
     color: '#64748b',
     entranceSide: 'right',
+    modelPath: '/models/Department_of_Civil_Engineering.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
   {
     id: 'mech',
@@ -363,6 +456,10 @@ export const CAMPUS_BUILDINGS = [
     size: [44, 21, 44],
     color: '#2563eb',
     entranceSide: 'right',
+    modelPath: '/models/Department_of_Mechanical_Engineering.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
   {
     id: 'vgsom',
@@ -372,6 +469,10 @@ export const CAMPUS_BUILDINGS = [
     size: [44, 22, 38],
     color: '#7c2d12',
     entranceSide: 'right',
+    modelPath: '/models/VGSOM.glb',
+    modelScale: 2.5,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
 
   // RIGHT ROUTE — OUTER RIGHT SIDE (X = +185, facing Left towards X = +135 road)
@@ -383,6 +484,9 @@ export const CAMPUS_BUILDINGS = [
     size: [40, 18, 44],
     color: '#0f766e',
     entranceSide: 'left',
+    modelPath: '/models/iit_kgp_architecture_dept.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
   },
   {
     id: 'education',
@@ -392,15 +496,22 @@ export const CAMPUS_BUILDINGS = [
     size: [40, 17, 44],
     color: '#4f46e5',
     entranceSide: 'left',
+    modelPath: '/models/iit_kgp_education_dept.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
   },
   {
     id: 'cryogenic',
     name: 'Cryogenic Engineering',
     code: 'CRYOGENIC',
-    pos: [185, -300],
+    pos: [200, -300],
     size: [40, 18, 48],
     color: '#0369a1',
     entranceSide: 'left',
+    modelPath: '/models/Cryogenic_Engineering_Centre.glb',
+    modelScale: 3,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
   {
     id: 'industrial',
@@ -410,6 +521,10 @@ export const CAMPUS_BUILDINGS = [
     size: [42, 20, 54],
     color: '#1d4ed8',
     entranceSide: 'left',
+    modelPath: '/models/iit_kgp_industrial_dept.glb',
+    modelScale: 1.5,
+    modelRotationOffset: 0,
+    modelOffset: [0, 0, 0],
   },
 ]
 
@@ -453,7 +568,6 @@ export default function CampusLoop() {
         const [w, h, d] = b.size
         const [x, z] = b.pos
 
-        // Calculate entrance porch, wall sign placement, and roadside board placement
         let porchOffset = [0, 2.5, d / 2 + 2]
         let porchSize = [8, 5, 4]
         let wallSignPos = [0, h - 3.2, d / 2 + 0.15]
@@ -488,8 +602,19 @@ export default function CampusLoop() {
               <meshStandardMaterial color="#94a3b8" roughness={0.8} />
             </mesh>
 
-            {/* Building Body */}
-            {b.isTwoFloorShared ? (
+            {/* Render 3D GLB Model if available, otherwise fallback to procedural building */}
+            {b.modelPath ? (
+              <Suspense fallback={null}>
+                <DepartmentGLB
+                  path={b.modelPath}
+                  targetSize={b.size}
+                  entranceSide={b.entranceSide}
+                  modelRotationOffset={b.modelRotationOffset || 0}
+                  modelScale={b.modelScale || 1}
+                  modelOffset={b.modelOffset || [0, 0, 0]}
+                />
+              </Suspense>
+            ) : b.isTwoFloorShared ? (
               <>
                 {/* 1st Floor: Mathematics */}
                 <mesh position={[0, h / 4 + 0.8, 0]}>
@@ -534,7 +659,6 @@ export default function CampusLoop() {
                   <meshStandardMaterial color={b.color} roughness={0.65} />
                 </mesh>
 
-                {/* Direct On-Building Wall Signboard */}
                 <BuildingWallSign
                   position={wallSignPos}
                   rotation={wallSignRot}
@@ -542,22 +666,22 @@ export default function CampusLoop() {
                   code={b.code}
                   maxWidth={wallWidth}
                 />
+
+                {/* Roof Cornice Trim */}
+                <mesh position={[0, h + 1.2, 0]}>
+                  <boxGeometry args={[w + 1.2, 0.8, d + 1.2]} />
+                  <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
+                </mesh>
+
+                {/* Entrance Porch Facing the Road */}
+                <mesh position={porchOffset}>
+                  <boxGeometry args={porchSize} />
+                  <meshStandardMaterial color="#e2e8f0" />
+                </mesh>
               </>
             )}
 
-            {/* Roof Cornice Trim */}
-            <mesh position={[0, h + 1.2, 0]}>
-              <boxGeometry args={[w + 1.2, 0.8, d + 1.2]} />
-              <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
-            </mesh>
-
-            {/* Entrance Porch Facing the Road */}
-            <mesh position={porchOffset}>
-              <boxGeometry args={porchSize} />
-              <meshStandardMaterial color="#e2e8f0" />
-            </mesh>
-
-            {/* Roadside Front Name Board in front of the Building */}
+            {/* Roadside Front Name Board in front of every Building (both GLB and procedural) */}
             <DepartmentFrontBoard
               position={frontBoardPos}
               rotation={frontBoardRot}
@@ -570,3 +694,13 @@ export default function CampusLoop() {
     </group>
   )
 }
+
+// Preload all 8 department GLB models
+useGLTF.preload('/models/Cryogenic_Engineering_Centre.glb')
+useGLTF.preload('/models/Department_of_Civil_Engineering.glb')
+useGLTF.preload('/models/Department_of_Mechanical_Engineering.glb')
+useGLTF.preload('/models/iit_kgp_hss_geology_complex.glb')
+useGLTF.preload('/models/iit_kgp_industrial_dept.glb')
+useGLTF.preload('/models/iit_kgp_metallurgy_dept.glb')
+useGLTF.preload('/models/Netaji_Auditorium.glb')
+useGLTF.preload('/models/VGSOM.glb')

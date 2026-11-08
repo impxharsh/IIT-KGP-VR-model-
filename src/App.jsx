@@ -57,7 +57,7 @@ function PlayerMovement() {
 
   // Binds VR joysticks to walk and turn
   useXRControllerLocomotion(playerRef, {
-    speed: 18,
+    speed: 50,
   })
 
   // Enforce solid walls every frame after joystick movement updates position
